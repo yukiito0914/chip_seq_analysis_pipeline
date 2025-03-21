@@ -1,0 +1,193 @@
+# Week 2: ChIPseq {-}
+
+## Section Links {-}
+
+[Week 2 Overview]
+
+[Objectives]
+
+[Containers for Project 2]
+
+[Plotting correlation between bigWigs]
+
+[Peak calling using MACS3]
+
+[Generating a set of reproducible peaks with bedtools intersect]
+
+[Filtering peaks found in ENCODE blacklist regions]
+
+[Annotating peaks to their nearest genomic feature using HOMER]
+
+[Week 2 Tasks Summary]
+
+## Week 2 Overview {-}
+
+For week 2, you will be performing a quick quality control check by plotting
+the correlation between the bigWigs you generated last week. Then, you will be
+performing standard peak calling analysis using MACS3, generating a single set
+of reproducible and filtered peaks, and annotating those peaks to their nearest
+genomic feature. 
+
+## Objectives {-}
+
+- Plot the correlation between the bigWig representations of your samples
+
+- Perform peak calling using MACS3 on each of the two replicate experiments
+
+- Use bedtools to generate a single set of reproducible peaks with ENCODE
+blacklist regions filtered out
+
+- Annotate your filtered, reproducible peaks using HOMER
+
+## Containers for Project 2 {-}
+
+FastQC: `ghcr.io/bf528/fastqc:latest`
+
+multiQC: `ghcr.io/bf528/multiqc:latest`
+
+bowtie2: `ghcr.io/bf528/bowtie2:latest`
+
+deeptools: `ghcr.io/bf528/deeptools:latest`
+
+trimmomatic: `ghcr.io/bf528/trimmomatic:latest`
+
+samtools: `ghcr.io/bf528/samtools:latest`
+
+macs3: `ghcr.io/bf528/macs3:latest`
+
+bedtools: `ghcr.io/bf528/bedtools:latest`
+
+homer: `ghcr.io/bf528/homer:latest`
+
+## Plotting correlation between bigWigs {-}
+
+Recall that the bigWigs we generate represent the count of reads falling into
+various genomic bins of a fixed size quantified from the alignments of each sample.
+Assuming the experiment was successful, we naively expect that the IP samples 
+should be highly similar to each other as they should be capturing the same
+binding sites for the factor of interest. Following this logic, the input controls
+which represent a random background of DNA from the genome should be *different*
+from the IP samples and somewhat more similar to each other. 
+
+We are going to perform a quick correlation analysis between the distances in
+our bigWig representations of our BAM files to determine the similarity between
+our samples with the above assumptions in mind.
+
+:::{.box .task}
+
+1. Create a module and use the multiBigwigsummary utility in deeptools to create
+a matrix containing the information from the bigWig files of all of your
+samples.
+
+2. Create a module and use the plotCorrelation utility in deeptools to generate
+a plot of the distances between correlation coefficients for all of your samples.
+You will need to choose whether to use a pearson or spearman correlation. In
+a notebook you create, provide a short justification for what you chose. 
+
+:::
+
+
+## Peak calling using MACS3 {-}
+
+In plain terms, peak calling algorithms attempt to find areas of enriched reads
+in a genome relative to background noise. MACS3 (Model-Based Analysis of Chip-Seq)
+is a commonly used tool that incorporates a Poisson model and other methodologies to 
+make robust peak-finding predictions. Generate a nextflow module and workflow
+that runs MACS3. 
+
+:::{.box .task}
+
+1. Use the [MACS3 manual](https://macs3-project.github.io/MACS/docs/callpeak.html)
+for the callpeak utility and create module that successfully runs `callpeak`
+
+2. Ensure that you specify the `-g` flag correctly for the human reference genome
+and the `-f` flag explicitly for paired-end BAM files. 
+
+3. **You will need to figure out how to pass both the IP and the Control sample
+for each replicate to the same command**. i.e. callpeak should run twice
+(IP_rep1 and control_rep1) and (IP_rep2 and control_rep2) as ChIP-seq
+experiments have paired IP and controls. The rep1 samples were derived from the
+same biological material and is a biological replicate for the rep 2 samples. 
+You will end up with two sets of peak calls, one for each replicate pair. 
+
+:::
+
+## Generating a set of reproducible peaks with bedtools intersect {-}
+
+We discussed various strategies for determining a set of "reproducible" peaks. 
+For the sake of expedience, we will be performing a simple intersection to come 
+up with a single set of peaks from this experiment. **Please come up with a valid
+intersection strategy for determine a reproducible peak. Remember that this choice
+is subjective, so make a choice and justify it**
+
+Generate a nextflow module and workflow that runs bedtools intersect to generate
+a set of reproducible peaks.
+
+
+:::{.box .task}
+
+1. Use the bedtools `intersect` tool to produce a single set of reproducible
+peaks from both of your replicate experiments.
+
+2. In your created notebook, please provide a quick statement on how you chose
+to come up with a consensus set of peaks. 
+
+:::
+
+
+## Filtering peaks found in ENCODE blacklist regions {-}
+
+In next generation sequencing experiments, there are certain regions of the
+genome that have been empirically determined to be present at a high level
+independent of cell line or experiment. These unstructured and anomalous regions
+are problematic for certain analyses (ChIPseq) and are considered to be
+signal-artifact regions and commonly stored in the form of a [blacklist](https://www.nature.com/articles/s41598-019-45839-z)
+
+The Boyle LAB as part of the ENCODE project have very kindly produced a list of
+these regions in some of the major model organisms using a standard methodology.
+This list is encoded as a BED file and is hosted by the [Boyle
+Lab](https://github.com/Boyle-Lab/Blacklist)/ Please encode the path to the
+blacklist in your params, you may find the file in the refs/ directory under
+materials/ for project 2. 
+
+:::{.box .task}
+
+1. Create a module that uses bedtools to remove any peaks that overlap with the
+blacklist BED for the most recent human reference genome. 
+
+2. In your provided notebook, please write a short section on the strategy you
+employed to remove blacklisted regions. Typically, any peaks that overlap a
+blacklisted region by even 1bp will be removed. You may choose a different
+strategy if you prefer as long as you justify your choice in the notebook you
+create.
+
+:::
+
+## Annotating peaks to their nearest genomic feature using HOMER {-}
+
+Now that we have a single set of reproducible peaks with signal-artifact blacklisted
+regions removed, we are going to annotate our peaks by assigning them an identity
+based on their closest genomic feature. While we have discussed many caveats to 
+annotating peaks in this fashion, it is a quick and exploratory analysis that 
+enables quick determination of the genomic structures your peaks are located in and
+their potential regulatory functions. You may find the manual page for HOMER and
+this utility [here](http://homer.ucsd.edu/homer/ngs/annotation.html)
+
+:::{.box .task}
+
+1. Create a module that uses `homer` and the `annotatePeaks.pl` script to annotate
+your BED file of reproducible peaks (filtered to remove blacklisted regions).
+
+:::
+
+## Week 2 Tasks Summary
+
+- Create nextflow modules and a script that performs the following tasks:
+  
+  1. Create a correlation plot between the sample bigWigs using deeptools 
+  multiBigWigSummary and plotCorrelation
+  2. Use MACS3 callpeak to perform peak calling on both replicate experiments
+  3. Generate a single set of reproducible peaks using bedtools
+  4. Filter peaks contained within the ENCODE blacklist using bedtools
+  5. Annotate peaks to their nearest genomic feature using HOMER
+

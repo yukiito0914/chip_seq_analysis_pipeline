@@ -1,0 +1,200 @@
+# Week 1: ChIPseq {-}
+
+## Section Links {-}
+
+[Project 2 Directions]
+
+[Week 1 Overview]
+
+[Objectives]
+
+[Containers for Project 2]
+
+[Quality Control, Genome indexing and alignment]
+
+[Sorting and indexing the alignments]
+
+[Calculate alignment statistics using samtools flagstat]
+
+[Aggregating QC results with MultiQC]
+
+[Generating bigWig files from our BAM files]
+
+[Week 1 Tasks Summary]
+
+## Project 2 Directions {-}
+
+Now that we have experience with Nextflow from two prior projects, the
+directions for this project will be much less detailed. I will describe what you
+should do and you will be expected to implement it yourself. If you are asked to 
+perform a certain task, you should create working nextflow modules, construct
+the proper channels in your `main.nf`, and run your workflow. 
+
+
+Please follow all the conventions we've established so far in the course.
+
+These conventions include:
+
+  1. Using isolated containers specific for each tool
+  2. Write extensible and generalizble nextflow modules for each task
+  3. Encoding reference file paths in the `nextflow.config`
+  4. Encoding sample info and sample file paths in a csv that drives your workflow
+  5. Requesting appropriate computational resources per job
+
+
+## Week 1 Overview {-}
+
+For many NGS experiments, the initial steps are largely universal. We perform
+quality control on the sequencing reads, build an index for the reference
+genome, and align the reads. However, the source of the data will inform what
+quality metrics are relevant and the particular choice of tools to accomplish
+these steps. For RNAseq, it is important to use a splice-aware aligner when
+aligning against a reference **genome** since our sequences originated from
+mRNA. For ChIPseq experiments, our reads originated from DNA sequences and we
+can use a non-splice aware algorithm to map our reads to the reference genome.
+
+
+## Objectives {-}
+
+- Assess QC on sequencing reads using FastQC
+
+- Trim adapters and low-quality reads using Trimmomatic
+
+- Align trimmed reads to the human reference genome
+
+- Run samtools flagstat to assess alignment statistics
+
+- Use MultiQC to aggregate all of the QC metrics
+
+- Use samtools to sort and index your BAM (alignment) files
+
+## Containers for Project 2 {-}
+
+FastQC: `ghcr.io/bf528/fastqc:latest`
+
+multiQC: `ghcr.io/bf528/multiqc:latest`
+
+bowtie2: `ghcr.io/bf528/bowtie2:latest`
+
+deeptools: `ghcr.io/bf528/deeptools:latest`
+
+trimmomatic: `ghcr.io/bf528/trimmomatic:latest`
+
+samtools: `ghcr.io/bf528/samtools:latest`
+
+macs3: `ghcr.io/bf528/macs3:latest`
+
+bedtools: `ghcr.io/bf528/bedtools:latest`
+
+homer: `ghcr.io/bf528/homer:latest`
+
+
+## Quality Control, Genome indexing and alignment {-}
+
+Between project 1 and the early labs we did, you should have working modules
+that perform quality control using FastQC and trimmomatic, build a genome index
+using bowtie2, and align reads to a genome. We are going to take advantage of
+the modularity of nextflow by simply copying these previous modules and
+incorporating them into this workflow.
+
+
+:::{.box .task}
+
+1. Use the provided CSV files that point to both the subsampled and full files.
+When you are developing the beginning of your workflow, use the subsampled files
+(they will not work once you get to the peak calling step). 
+
+**Please note that the subsampled_files are named differently than the full files!**
+
+2. The paths to the human reference genome, GTF and a few other critical files
+are already encoded in your `nextflow.config`. 
+
+3. Update your workflow `main.nf` to perform quality control using FastQC and
+trimmomatic, build a bowtie2 index for the human reference genome and align the
+reads to the reference genome. Remember that we have worked on code for
+trimmomatic and bowtie2 in the labs.
+
+**N.B. Some of the code from the labs will need to be modified to work for this specific experiment (paired end vs. single end, etc.)**
+
+:::
+
+
+## Sorting and indexing the alignments {-}
+
+Many subsequent analyses on our BAM files will require them to be both sorted
+and indexed. Just like for large sequences in FASTA files, sorting and indexing
+the alignments will allow us to perform much more efficient computational
+operations on them.
+
+
+:::{.box .task}
+
+1. Create a module(s) that will both sort and index your BAM files using Samtools. 
+
+:::
+
+## Calculate alignment statistics using samtools flagstat {-}
+
+The samtools flagstat utility will report various statistics regarding the
+alignment flags found in the BAM.
+
+:::{.box .task}
+
+1. Create a module that will run samtools flagstat on all of your BAM files
+
+:::
+
+## Aggregating QC results with MultiQC {-}
+
+Just like in project 1, we are going to use multiqc to collect the various
+quality control metrics from our pipeline. Ensure that multiqc collects the
+outputs from FastQC, Trimmomatic and flagstat. 
+
+:::{.box .task}
+
+1. Make a channel in your workflow `main.nf` that collects all of the relevant
+QC outputs needed for multiqc (fastqc zip files, trimmomatic log, and samtools
+flagstat output)
+
+2. Copy your previous multiqc module and incorporate it into your workflow to 
+generate a MultiQC report for the listed outputs
+
+:::
+
+## Generating bigWig files from our BAM files {-}
+
+Now that we have sorted and indexed our alignments, we are going to generate
+bigWig files or coverage tracks containing the number of reads per genomic
+interval or bin for each sample. We will use these coverage tracks for calculating
+correlation between our samples and visualizing the read coverage in specific
+regions of interest. 
+
+:::{.box .task}
+
+1. Use the `bamCoverage` deeptools utility to generate a bigWig file for each
+of the sample BAM files. 
+
+2. You may use all default parameters. If you wish, you may change the `-bs` and
+`-p` flags as needed. 
+
+:::
+
+## Week 1 Tasks Summary {-}
+
+- Create nextflow modules that run the following tools:
+  
+  1. FastQC
+  2. Trimmomatic
+  3. Bowtie2-index
+
+- Sort and index your bams using a single nextflow module and samtools
+
+- Calculate alignment statistics using samtools flagstat
+
+- Aggregate all of the QC output results from the previous tools using MultiQC
+
+- Generate a nextflow module that uses deeptools to create bigWig representations
+of your BAM files
+
+
+
