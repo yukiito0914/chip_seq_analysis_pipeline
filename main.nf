@@ -9,10 +9,13 @@ include {SAMTOOLS_IDX} from './modules/samtools_idx'
 include {SAMTOOLS_FLAGSTAT} from './modules/samtools_flagstat'
 include {MULTIQC} from './modules/multiqc'
 include {DEEPTOOLS_BAMCOVERAGE} from './modules/deeptools_bamcoverage'
+include {MULTIBIGWIGSUMMARY} from './modules/multibigwigsummary'
+include {PLOTCORRELATION} from './modules/plotcorrelation'
+include {CALLPEAK} from './modules/callpeak'
 
 workflow {
 
-    Channel.fromPath(params.subset_samplesheet)
+    Channel.fromPath(params.samplesheet)
     | splitCsv(header: true)
     | map { row -> tuple(row.name, file(row.path)) }
     | set {fq_ch}
@@ -53,4 +56,31 @@ workflow {
 
     // Perform coverage analysis
     DEEPTOOLS_BAMCOVERAGE(SAMTOOLS_SORT.out.sorted.join(SAMTOOLS_IDX.out.index))
+
+    DEEPTOOLS_BAMCOVERAGE.out.coverage
+    . map{it[1]}
+    . collect()
+    . set {bigwig_ch}
+
+    // Create a matrix containing the information from the bigWig files
+    MULTIBIGWIGSUMMARY(bigwig_ch)
+    // Plot correlation heatmap
+    PLOTCORRELATION(MULTIBIGWIGSUMMARY.out.npz)
+
+    sorted_bam_paths = SAMTOOLS_SORT.out.sorted
+    .join(SAMTOOLS_IDX.out.index)
+    .map { tuple(it[0], it[1], it[2]) } // tuple(meta, bam, bai)
+
+    chip_bams = sorted_bam_paths.filter { it[1].name.contains("IP") }
+    input_bams = sorted_bam_paths.filter { it[1].name.contains("INPUT") }
+
+    // Pairing the IP and Input BAM files
+    paired_bams = chip_bams
+    .map { tuple(it[1].simpleName.replace("IP_", "").replace(".sorted", ""), it[1], it[2]) } // key, IP.bam, IP.bai
+    .join(
+        input_bams.map { tuple(it[1].simpleName.replace("INPUT_", "").replace(".sorted", ""), it[1], it[2]) } // key, INPUT.bam, INPUT.bai
+    )
+    
+    // Peak calling
+    CALLPEAK(paired_bams)
 }
