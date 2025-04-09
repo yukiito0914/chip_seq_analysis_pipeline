@@ -1,15 +1,15 @@
 #!/usr/bin/env nextflow
 
 process CALLPEAK {
-    label 'process_single'
-    container 'ghcr.io/bf528/macs3:latest'
+    label 'process_high'
+    conda 'envs/macs3_env.yml'
     publishDir params.outdir, mode: 'copy'
 
     input:
     tuple val(meta), path(ip_bam), path(ip_idx), path(input_bam), path(input_idx)
 
     output:
-    tuple val(meta), path("callpeak_${meta}"), emit: peak
+    tuple val(meta), path("callpeak_${meta}/"), emit: peak
 
     shell:
     """

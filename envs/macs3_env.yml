@@ -1,0 +1,7 @@
+name: macs3_env
+channels:
+- conda-forge
+- bioconda
+
+dependencies:
+- macs3=3.0.3

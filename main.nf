@@ -12,6 +12,9 @@ include {DEEPTOOLS_BAMCOVERAGE} from './modules/deeptools_bamcoverage'
 include {MULTIBIGWIGSUMMARY} from './modules/multibigwigsummary'
 include {PLOTCORRELATION} from './modules/plotcorrelation'
 include {CALLPEAK} from './modules/callpeak'
+include {INTERSECT} from './modules/intersect'
+include {REMOVE} from './modules/remove'
+include {HOMER} from './modules/homer'
 
 workflow {
 
@@ -71,16 +74,34 @@ workflow {
     .join(SAMTOOLS_IDX.out.index)
     .map { tuple(it[0], it[1], it[2]) } // tuple(meta, bam, bai)
 
-    chip_bams = sorted_bam_paths.filter { it[1].name.contains("IP") }
-    input_bams = sorted_bam_paths.filter { it[1].name.contains("INPUT") }
+    sorted_bam_paths
+    .map { name, bam, bai -> 
+        def rep = name.split('_')[1]
+        def tag = bam.baseName.split('_')[0]  // "IP" or "INPUT"
+        tuple(rep, [(tag): [bam, bai]])
+    }
+    .groupTuple(by: 0)
+    .map { rep, maps -> tuple(rep, maps[0] + maps[1]) }
+    .map { rep, samples -> tuple(rep, samples.IP[0], samples.IP[1], samples.INPUT[0], samples.INPUT[1]) }
+    .set { peakcalling_ch }
 
-    // Pairing the IP and Input BAM files
-    paired_bams = chip_bams
-    .map { tuple(it[1].simpleName.replace("IP_", "").replace(".sorted", ""), it[1], it[2]) } // key, IP.bam, IP.bai
-    .join(
-        input_bams.map { tuple(it[1].simpleName.replace("INPUT_", "").replace(".sorted", ""), it[1], it[2]) } // key, INPUT.bam, INPUT.bai
-    )
-    
     // Peak calling
-    CALLPEAK(paired_bams)
+    CALLPEAK(peakcalling_ch)
+
+    CALLPEAK.out.peak
+        .map { _, dir -> 
+            dir.listFiles().find { it.name.endsWith('.narrowPeak') }
+        }
+        .collect()
+        .map { files -> 
+            tuple(files[0], files[1])
+        }
+        .set { intersect_ch }
+
+    // Intersect reproducible peaks
+    INTERSECT(intersect_ch)
+    // Remove blacklisted regions
+    REMOVE(INTERSECT.out.repr_peaks, params.blacklist)
+    // Annotating peaks
+    HOMER(REMOVE.out.filtered_peaks, params.genome, params.gtf)
 }
