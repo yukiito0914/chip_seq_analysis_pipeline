@@ -1,0 +1,7 @@
+name: notebook_env
+channels:
+- conda-forge
+- bioconda
+
+dependencies:
+- ipykernel=6.29.5
