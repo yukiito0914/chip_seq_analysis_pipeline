@@ -10,7 +10,7 @@ process REMOVE {
     path(blacklist)
 
     output:
-    path("reproducible_peaks.bed"), emit: filtered_peaks
+    path("peak.filtered.bed"), emit: filtered_peaks
 
     shell:
     """

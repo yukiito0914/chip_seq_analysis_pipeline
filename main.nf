@@ -15,6 +15,9 @@ include {CALLPEAK} from './modules/callpeak'
 include {INTERSECT} from './modules/intersect'
 include {REMOVE} from './modules/remove'
 include {HOMER} from './modules/homer'
+include {COMPUTEMATRIX} from './modules/computematrix'
+include {PLOTPROFILE} from './modules/plotprofile'
+include {FINDMOTIF} from './modules/findmotif'
 
 workflow {
 
@@ -104,4 +107,15 @@ workflow {
     REMOVE(INTERSECT.out.repr_peaks, params.blacklist)
     // Annotating peaks
     HOMER(REMOVE.out.filtered_peaks, params.genome, params.gtf)
+
+    DEEPTOOLS_BAMCOVERAGE.out.coverage
+    .filter { name, bw -> name.startsWith("IP") }
+    .set { computematrix_ch }
+
+    // Create a matrix from the bigWig files
+    COMPUTEMATRIX(computematrix_ch, params.bed)
+    // Plot profile
+    PLOTPROFILE(COMPUTEMATRIX.out.matrix)
+    // Find enriched motifs
+    FINDMOTIF(REMOVE.out.filtered_peaks, params.genome)
 }
