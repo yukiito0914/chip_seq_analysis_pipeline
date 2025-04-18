@@ -54,6 +54,13 @@ The pipeline produces the following outputs under ```results/```:
 | `plots/profile/`          | Enrichment profiles around regions (e.g., TSS) from `plotProfile`       |
 | `matrices/`               | Signal matrices from `computeMatrix` used for plotting profiles         |
 
+## Example Output Figures
+### Signal Correlation Heatmap
+![image](https://github.com/user-attachments/assets/8ee8ef1c-9885-4152-ad1c-b0dff7a88a9b)
+
+### ChIP Enrichment Around TSS (Profile Plot)
+![image](https://github.com/user-attachments/assets/c4153d7e-8636-42a1-9a0f-9d687ccf4054)
+
 ## Example ```samplesheet.csv```
 ```csv
 name,path
