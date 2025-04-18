@@ -27,7 +27,7 @@ FASTQ → Quality Control → Trimming → Alignment → BAM Processing → Cove
 | `params.adapter_fa`      | Adapter sequence file for trimming (e.g. Illumina TruSeq)                   |
 | `params.genome`          | Reference genome in FASTA format (e.g. GRCh38)                              |
 | `params.gtf`             | Gene annotation file in GTF format (e.g. GENCODE)                           |
-| `-params.blacklist`       | BED file of blacklisted genomic regions to be removed from peak calls       |
+| `params.blacklist`       | BED file of blacklisted genomic regions to be removed from peak calls       |
 | `params.bed`             | BED file of regions for signal profiling (e.g. promoters, TSS)              |
 
 ## Running the Pipeline
