@@ -13,6 +13,6 @@ process PLOTCORRELATION {
 
     shell:
     """
-    plotCorrelation -in $matrix -c spearman -p heatmap -o spearman_heatmap.png
+    plotCorrelation -in $matrix -c spearman -p heatmap --plotNumbers --colorMap coolwarm -o spearman_heatmap.png
     """
 }
